@@ -59,10 +59,27 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-paper: var(--paper);
+  --color-line: var(--line);
+  --color-gold: var(--gold);
+  --font-display: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 }
 
 :root {
   --radius: 0.625rem;
+  --ink: oklch(0.19 0.035 218);
+  --ink-soft: oklch(0.42 0.028 210);
+  --mint: oklch(0.73 0.12 166);
+  --mint-soft: oklch(0.94 0.035 165);
+  --paper: oklch(0.97 0.008 165);
+  --line: oklch(0.89 0.025 165);
+  --gold: oklch(0.69 0.13 78);
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
@@ -140,5 +157,28 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
   }
 }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pinpulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-mint) 50%, transparent); }
+  100% { box-shadow: 0 0 0 16px transparent; }
+}
+
+@utility animate-rise {
+  animation: rise 0.5s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@utility animate-pinpulse {
+  animation: pinpulse 2.4s ease-out infinite;
+}
+
+@utility pin-one { left: 38%; top: 46%; }
+@utility pin-two { left: 62%; top: 30%; }
+@utility pin-three { left: 70%; top: 64%; }
