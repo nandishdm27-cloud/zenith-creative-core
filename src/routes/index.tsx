@@ -1,24 +1,92 @@
+import { useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { ArrowRight, Bookmark, Check, ChevronDown, Clock3, Crosshair, MapPin, Navigation, Phone, Search, Sparkles, Star, Stethoscope, X } from "lucide-react";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { Button } from "@/components/ui/button";
+import clinicReception from "@/assets/clinic-reception.jpg";
+import catExam from "@/assets/cat-exam.jpg";
+import bengaluruMap from "@/assets/bengaluru-map.jpg";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Vellum Vet | Find Veterinary Care in Bengaluru" },
+      { name: "description", content: "Discover nearby veterinary hospitals and pet clinics in Bengaluru with trusted ratings, services, hours, and directions." },
+      { property: "og:title", content: "Vellum Vet | Find Veterinary Care in Bengaluru" },
+      { property: "og:description", content: "Discover nearby veterinary hospitals and pet clinics in Bengaluru with trusted ratings, services, hours, and directions." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+type Clinic = {
+  id: string;
+  name: string;
+  area: string;
+  distance: string;
+  rating: string;
+  reviews: string;
+  hours: string;
+  services: string;
+  image: string;
+  phone: string;
+  tags: string[];
+  emergency: boolean;
+};
+
+const clinics: Clinic[] = [
+  { id: "fern-feline", name: "Fern & Feline Animal Hospital", area: "Jeevanbhima Nagar", distance: "1.2 km", rating: "4.8", reviews: "214", hours: "Open till 9pm", services: "Dogs, cats, exotics", image: clinicReception, phone: "+918012345678", tags: ["All clinics", "Open now", "Surgeries", "Under ₹2,000", "Dog care", "Cat care"], emergency: false },
+  { id: "cubbon-companion", name: "Cubbon Companion Clinic", area: "Cubbon Park", distance: "2.0 km", rating: "4.9", reviews: "178", hours: "Open now", services: "Small animals, wellness", image: catExam, phone: "+918087654321", tags: ["All clinics", "Open now", "Vaccination", "Cat care"], emergency: false },
+  { id: "cessna-lifeline", name: "Cessna Lifeline Veterinary Hospital", area: "Domlur", distance: "3.4 km", rating: "4.4", reviews: "9,066", hours: "Open 24 hours", services: "Emergency, surgery, diagnostics", image: clinicReception, phone: "+918022222222", tags: ["All clinics", "24/7", "Surgeries", "Emergency", "Dog care", "Cat care"], emergency: true },
+  { id: "supervet", name: "Supervet Multispeciality Hospital", area: "Nagarbhavi", distance: "7.8 km", rating: "4.8", reviews: "467", hours: "Open 24 hours", services: "Specialist care, surgery, ICU", image: catExam, phone: "+918033333333", tags: ["All clinics", "24/7", "Surgeries", "Emergency"], emergency: true },
+];
+
+const filters = ["All clinics", "Open now", "24/7", "Surgeries", "Under ₹2,000", "Emergency"];
+
 function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("All clinics");
+  const [saved, setSaved] = useState<string[]>([]);
+  const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
+  const [location, setLocation] = useState("Indiranagar");
+  const [locationNotice, setLocationNotice] = useState("");
+  const [conciergeOpen, setConciergeOpen] = useState(false);
+  const [symptom, setSymptom] = useState("");
+
+  const visibleClinics = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return clinics.filter((clinic) => {
+      const matchesQuery = !normalizedQuery || [clinic.name, clinic.area, clinic.services, ...clinic.tags].join(" ").toLowerCase().includes(normalizedQuery);
+      return matchesQuery && (filter === "All clinics" || clinic.tags.includes(filter));
+    });
+  }, [filter, query]);
+
+  const toggleSaved = (clinicId: string) => setSaved((current) => current.includes(clinicId) ? current.filter((id) => id !== clinicId) : [...current, clinicId]);
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) { setLocationNotice("Location is unavailable in this browser."); return; }
+    navigator.geolocation.getCurrentPosition(() => { setLocation("Near you"); setLocationNotice("Location updated"); }, () => setLocationNotice("Showing clinics near Indiranagar instead."), { enableHighAccuracy: true, timeout: 5000 });
+  };
+
+  return <div className="min-h-screen w-full bg-paper font-sans text-ink selection:bg-mint/30"><div className="relative overflow-hidden"><div className="pointer-events-none absolute -top-24 left-1/3 size-96 rounded-full bg-mint/10 blur-3xl" /><div className="pointer-events-none absolute right-10 top-10 size-80 rounded-full bg-ink/5 blur-3xl" />
+    <header className="relative z-10 flex items-center justify-between px-6 py-4 lg:px-10"><div className="flex items-center gap-3"><div className="flex size-9 items-center justify-center rounded-lg bg-ink font-display text-sm font-semibold text-primary-foreground">V</div><div><p className="text-sm font-semibold tracking-tight">Vellum Vet</p><p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">Bengaluru field guide</p></div></div><nav className="hidden items-center gap-7 text-sm font-medium text-ink-soft md:flex"><button className="text-ink">Find care</button><button onClick={() => setQuery("hospital")}>Clinics</button><button onClick={() => setConciergeOpen(true)}>Guides</button><button onClick={() => setFilter("All clinics")}>Save</button></nav><Button variant="ink" size="sm" onClick={() => setConciergeOpen(true)}><span className="size-1.5 rounded-full bg-mint" /> Concierge</Button></header>
+    <div className="relative z-10 flex items-end justify-between px-6 pb-5 lg:px-10"><div className="max-w-[46ch]"><button onClick={useCurrentLocation} className="mb-3 inline-flex items-center gap-2 rounded-full bg-background px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft ring-1 ring-line transition-colors hover:bg-mint-soft"><span className="size-1.5 rounded-full bg-mint" /> Residency auto-detected · {location}</button><h1 className="text-balance text-4xl font-semibold tracking-tight md:text-5xl">Find the right <span className="font-display">care</span>, near your <span className="font-display">door.</span></h1><p className="mt-3 text-pretty text-ink-soft">A calm, well-sourced directory of Bengaluru veterinary clinics — with a coordinator on call.</p>{locationNotice && <p className="mt-2 text-xs font-medium text-mint">{locationNotice}</p>}</div></div>
+    <div className="relative z-10 flex items-center gap-2 px-6 pb-6 lg:px-10"><label className="flex flex-1 items-center gap-3 rounded-xl bg-background px-4 py-3 ring-1 ring-line focus-within:ring-2 focus-within:ring-mint"><Search className="size-4 text-ink-soft" /><input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-soft/60" placeholder="Search symptom, clinic, or neighbourhood" aria-label="Search veterinary clinics" />{query && <button onClick={() => setQuery("")} aria-label="Clear search"><X className="size-4 text-ink-soft" /></button>}</label><button onClick={useCurrentLocation} className="flex items-center gap-1.5 rounded-xl bg-background px-3 py-3 ring-1 ring-line transition-colors hover:bg-mint-soft" aria-label="Use current location"><Crosshair className="size-4 text-mint" /><span className="hidden whitespace-nowrap text-sm font-medium sm:inline">{location}</span></button></div>
+    <main className="relative z-10 grid grid-cols-1 gap-5 px-6 pb-8 lg:grid-cols-12 lg:px-10"><section className="order-1 lg:order-2 lg:col-span-7"><div className="flex flex-wrap items-center gap-2 pb-4"><span className="mr-1 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">Filters</span>{filters.map((item) => <button key={item} onClick={() => setFilter(item)} className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${filter === item ? "bg-ink text-primary-foreground" : "bg-background text-ink-soft ring-1 ring-line hover:bg-mint-soft"}`}>{item}</button>)}</div><div className="mb-3 flex items-center justify-between text-xs text-ink-soft"><span>{visibleClinics.length} clinics matched</span><button className="inline-flex items-center gap-1 font-medium text-ink"><span>Sort: Nearest</span><ChevronDown className="size-3.5" /></button></div><div className="grid gap-4 sm:grid-cols-2">{visibleClinics.map((clinic, index) => <ClinicCard key={clinic.id} clinic={clinic} index={index} isSaved={saved.includes(clinic.id)} onSave={() => toggleSaved(clinic.id)} onDetails={() => setSelectedClinic(clinic)} />)}{visibleClinics.length === 0 && <div className="col-span-full rounded-2xl bg-background p-8 text-center ring-1 ring-line"><p className="font-display text-xl">No clinics found</p><p className="mt-2 text-sm text-ink-soft">Try another neighbourhood, service, or filter.</p><Button variant="paper" size="sm" className="mt-4" onClick={() => { setQuery(""); setFilter("All clinics"); }}>Reset search</Button></div>}</div></section>
+      <aside className="order-2 lg:order-1 lg:col-span-5"><div className="sticky top-4 rounded-2xl bg-background/70 p-4 ring-1 ring-line backdrop-blur-md animate-rise"><div className="mb-4 flex items-center justify-between"><div><p className="text-sm font-semibold tracking-tight">Care Concierge</p><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">AI · always on</p></div><span className="flex items-center gap-1.5 rounded-full bg-mint-soft px-2.5 py-1 text-[11px] font-medium text-ink"><span className="size-1.5 rounded-full bg-mint" />Online</span></div><div className="space-y-2.5"><div className="rounded-xl rounded-tl-sm bg-ink px-3.5 py-2.5 text-sm text-primary-foreground">Good evening. What's feeling unwell tonight?</div><div className="ml-8 rounded-xl rounded-tr-sm bg-mint-soft px-3.5 py-2.5 text-sm text-ink">My beagle stopped eating since this morning.</div><div className="rounded-xl rounded-tl-sm bg-ink px-3.5 py-2.5 text-sm text-primary-foreground">I'd start with <span className="font-medium">Fern & Feline</span> — nearest with a small-animal vet free around 8pm.</div></div><div className="mt-4 flex items-center gap-2"><input value={symptom} onChange={(event) => setSymptom(event.target.value)} className="flex-1 rounded-lg bg-paper px-3 py-2.5 text-sm text-ink outline-none placeholder:text-ink-soft/60 ring-1 ring-line" placeholder="Describe the symptoms…" aria-label="Describe symptoms" /><Button variant="mint" size="sm" onClick={() => setConciergeOpen(true)}>Ask</Button></div></div><div className="mt-5 rounded-2xl bg-ink/5 p-4 ring-1 ring-line animate-rise"><div className="flex items-center justify-between"><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">Neighbourhood map</p><button onClick={useCurrentLocation} className="text-ink-soft" aria-label="Recenter map"><Crosshair className="size-4" /></button></div><div className="relative mt-3 h-40 overflow-hidden rounded-xl bg-mint-soft"><img src={bengaluruMap} alt="Illustrated map of Bengaluru" width={1024} height={600} className="absolute inset-0 size-full object-cover" loading="lazy" /><span className="pin-one absolute size-3 rounded-full bg-mint ring-2 ring-background animate-pinpulse" /><span className="pin-two absolute size-3 rounded-full bg-gold ring-2 ring-background" /><span className="pin-three absolute size-3 rounded-full bg-mint ring-2 ring-background" /></div><p className="mt-3 text-xs text-ink-soft">3 of 12 clinics within 2 km · updated this morning</p></div></aside></main></div>{selectedClinic && <ClinicDetails clinic={selectedClinic} isSaved={saved.includes(selectedClinic.id)} onSave={() => toggleSaved(selectedClinic.id)} onClose={() => setSelectedClinic(null)} />}{conciergeOpen && <ConciergeDialog symptom={symptom} onClose={() => setConciergeOpen(false)} />}</div>;
+}
+
+function ClinicCard({ clinic, index, isSaved, onSave, onDetails }: { clinic: Clinic; index: number; isSaved: boolean; onSave: () => void; onDetails: () => void }) {
+  return <article className="group overflow-hidden rounded-2xl bg-background ring-1 ring-line transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-ink/10 animate-rise"><div className="relative"><img src={clinic.image} alt={`${clinic.name} veterinary care`} width={1024} height={640} className="aspect-[16/10] w-full object-cover" loading="lazy" /><span className="absolute left-3 top-3 rounded-full bg-background/85 px-2.5 py-1 font-mono text-[10px] tracking-wide text-ink backdrop-blur-sm">{clinic.distance}</span><span className="absolute right-3 top-3 rounded-full bg-mint-soft px-2.5 py-1 text-[10px] font-medium text-ink">{clinic.emergency ? "24/7 emergency" : "Verified listing"}</span></div><div className="p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="text-balance text-base font-semibold tracking-tight">{clinic.name}</h3><p className="mt-1 text-sm text-ink-soft">{clinic.area} · {clinic.services}</p></div><button onClick={onSave} aria-label={isSaved ? `Remove ${clinic.name} from saved` : `Save ${clinic.name}`} className={`rounded-lg p-2 transition-colors ${isSaved ? "bg-mint-soft text-ink" : "text-ink-soft hover:bg-paper"}`}><Bookmark className="size-4" fill={isSaved ? "currentColor" : "none"} /></button></div><div className="mt-3 flex items-center gap-3 text-sm"><span className="inline-flex items-center gap-1 font-medium"><Star className="size-3.5 fill-gold text-gold" />{clinic.rating}</span><span className="font-mono text-[11px] text-ink-soft">{clinic.reviews} reviews</span><span className="ml-auto rounded-full bg-mint-soft px-2 py-0.5 text-[11px] font-medium text-ink">{clinic.hours}</span></div><div className="mt-4 flex items-center gap-2"><Button variant="ink" size="sm" className="flex-1" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${clinic.name}, ${clinic.area}, Bengaluru`)}`, "_blank")}><Navigation className="size-3.5" /> Directions</Button><Button variant="paper" size="sm" onClick={() => window.open(`tel:${clinic.phone}`, "_self")}><Phone className="size-3.5" /> Call</Button><Button variant="paper" size="sm" onClick={onDetails}>View</Button></div></div></article>;
+}
+
+function ClinicDetails({ clinic, isSaved, onSave, onClose }: { clinic: Clinic; isSaved: boolean; onSave: () => void; onClose: () => void }) {
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 p-4 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true" aria-label={`${clinic.name} details`}><div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-background shadow-2xl ring-1 ring-line"><div className="relative"><img src={clinic.image} alt={`${clinic.name} interior`} width={1024} height={640} className="h-52 w-full object-cover sm:h-64" /><button onClick={onClose} aria-label="Close details" className="absolute right-4 top-4 grid size-9 place-items-center rounded-full bg-background/90 text-ink ring-1 ring-line"><X className="size-4" /></button></div><div className="p-5"><div className="flex items-start justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">Clinic profile</p><h2 className="mt-1 font-display text-3xl">{clinic.name}</h2><p className="mt-1 text-sm text-ink-soft"><MapPin className="mr-1 inline size-3.5" />{clinic.area}, Bengaluru · {clinic.distance}</p></div><button onClick={onSave} className="rounded-lg bg-paper p-2 text-ink" aria-label="Save clinic"><Bookmark className="size-4" fill={isSaved ? "currentColor" : "none"} /></button></div><div className="mt-5 grid grid-cols-3 gap-2"><Stat icon={<Star className="size-4 fill-gold text-gold" />} label="Rating" value={`${clinic.rating} / 5`} /><Stat icon={<Clock3 className="size-4 text-mint" />} label="Hours" value={clinic.hours.replace("Open ", "")} /><Stat icon={<Stethoscope className="size-4 text-mint" />} label="Reviews" value={clinic.reviews} /></div><div className="mt-5 border-t border-line pt-5"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">Services</p><div className="mt-3 flex flex-wrap gap-2">{clinic.services.split(", ").map((service) => <span key={service} className="inline-flex items-center gap-1 rounded-full bg-mint-soft px-3 py-1.5 text-xs font-medium text-ink"><Check className="size-3" />{service}</span>)}</div></div><div className="mt-5 flex gap-2"><Button variant="ink" className="flex-1" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${clinic.name}, ${clinic.area}, Bengaluru`)}`, "_blank")}><Navigation className="size-4" /> Get directions</Button><Button variant="paper" onClick={() => window.open(`tel:${clinic.phone}`, "_self")}><Phone className="size-4" /> Call</Button></div><p className="mt-4 text-center text-xs text-ink-soft">Ratings and review counts are directory references and may change over time.</p></div></div></div>;
+}
+
+function Stat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) { return <div className="rounded-xl bg-paper p-3"><div className="flex items-center gap-2">{icon}<span className="text-[10px] uppercase tracking-[0.12em] text-ink-soft">{label}</span></div><p className="mt-2 text-sm font-semibold text-ink">{value}</p></div>; }
+
+function ConciergeDialog({ symptom, onClose }: { symptom: string; onClose: () => void }) {
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 p-4 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true" aria-label="Care Concierge"><div className="w-full max-w-lg rounded-2xl bg-background p-5 shadow-2xl ring-1 ring-line"><div className="flex items-start justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">Care Concierge</p><h2 className="mt-1 font-display text-3xl">A calmer next step.</h2></div><button onClick={onClose} aria-label="Close concierge" className="grid size-9 place-items-center rounded-lg bg-paper text-ink"><X className="size-4" /></button></div><div className="mt-5 rounded-xl bg-mint-soft p-4"><div className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4 text-mint" /> Your care note</div><p className="mt-2 text-sm leading-6 text-ink-soft">{symptom ? `For “${symptom}”, start by calling the nearest open clinic and describe when the symptom began. If your pet is struggling to breathe, bleeding heavily, or unresponsive, seek emergency care now.` : "Tell us what changed, when it started, and whether your pet is eating, drinking, and moving normally."}</p></div><div className="mt-5 grid gap-2"><button onClick={onClose} className="flex items-center justify-between rounded-xl bg-ink px-4 py-3 text-left text-sm font-medium text-primary-foreground"><span>Browse open clinics</span><ArrowRight className="size-4" /></button><button onClick={onClose} className="flex items-center justify-between rounded-xl bg-paper px-4 py-3 text-left text-sm font-medium text-ink"><span>Find 24/7 emergency care</span><ArrowRight className="size-4" /></button></div><p className="mt-4 text-center text-xs text-ink-soft">Care guidance is informational and not a substitute for a veterinary examination.</p></div></div>;
 }
